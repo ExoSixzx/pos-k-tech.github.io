@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบ POS คาเฟ่</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Kanit', sans-serif; }
+        .receipt-paper {
+            background: linear-gradient(to bottom, #ffffff 0%, #f8f9fa 100%);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .menu-card:hover {
+            transform: translateY(-2px);
+            transition: all 0.3s ease;
+        }
+        .order-item {
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-amber-50 to-orange-100 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-lg border-b-4 border-amber-400">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-amber-500 p-3 rounded-full">
+                        <i class="fas fa-coffee text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-800">Café POS System</h1>
+                        <p class="text-gray-600">ระบบขายหน้าร้านคาเฟ่</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-right">
+                        <p class="text-sm text-gray-600">พนักงาน: สมชาย ใจดี</p>
+                        <p class="text-sm text-gray-600" id="currentTime"></p>
+                    </div>
+                    <button class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors">
+                        <i class="fas fa-sign-out-alt mr-2"></i>ออกจากระบบ
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-4 py-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Menu Section -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-bold text-gray-800">
+                            <i class="fas fa-utensils mr-2 text-amber-500"></i>เมนูสินค้า
+                        </h2>
+                        <div class="flex space-x-2">
+                            <button class="category-btn active bg-amber-500 text-white px-4 py-2 rounded-lg" data-category="drinks">
+                                <i class="fas fa-coffee mr-2"></i>เครื่องดื่ม
+                            </button>
+                            <button class="category-btn bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300" data-category="food">
+                                <i class="fas fa-cookie-bite mr-2"></i>อาหาร
+                            </button>
+                            <button class="category-btn bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300" data-category="dessert">
+                                <i class="fas fa-ice-cream mr-2"></i>ของหวาน
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="menuGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        <!-- Menu items will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Section -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-xl shadow-lg receipt-paper">
+                    <div class="p-6 border-b border-gray-200">
+                        <h2 class="text-xl font-bold text-gray-800 mb-2">
+                            <i class="fas fa-receipt mr-2 text-green-500"></i>รายการสั่งซื้อ
+                        </h2>
+                        <div class="flex justify-between text-sm text-gray-600">
+                            <span>Order #<span id="orderNumber">001</span></span>
+                            <span id="orderTime"></span>
+                        </div>
+                    </div>
+
+                    <div class="p-6">
+                        <div id="orderItems" class="space-y-3 mb-6 min-h-[200px]">
+                            <div class="text-center text-gray-500 py-8">
+                                <i class="fas fa-shopping-cart text-4xl mb-3"></i>
+                                <p>ยังไม่มีรายการสั่งซื้อ</p>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-gray-200 pt-4 space-y-2">
+                            <div class="flex justify-between text-gray-600">
+                                <span>ยอดรวม:</span>
+                                <span id="subtotal">฿0.00</span>
+                            </div>
+                            <div class="flex justify-between text-gray-600">
+                                <span>ภาษี (7%):</span>
+                                <span id="tax">฿0.00</span>
+                            </div>
+                            <div class="flex justify-between text-lg font-bold text-gray-800 border-t pt-2">
+                                <span>รวมทั้งสิ้น:</span>
+                                <span id="total">฿0.00</span>
+                            </div>
+                        </div>
+
+                        <div class="mt-6 space-y-3">
+                            <button id="clearOrder" class="w-full bg-gray-500 hover:bg-gray-600 text-white py-3 rounded-lg transition-colors">
+                                <i class="fas fa-trash mr-2"></i>ล้างรายการ
+                            </button>
+                            <button id="processPayment" class="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg transition-colors font-semibold">
+                                <i class="fas fa-credit-card mr-2"></i>ชำระเงิน
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Modal -->
+    <div id="paymentModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4">
+            <h3 class="text-2xl font-bold text-gray-800 mb-6 text-center">
+                <i class="fas fa-credit-card mr-2 text-green-500"></i>ชำระเงิน
+            </h3>
+            
+            <div class="mb-6">
+                <div class="bg-gray-50 p-4 rounded-lg mb-4">
+                    <div class="flex justify-between text-lg font-semibold">
+                        <span>ยอดที่ต้องชำระ:</span>
+                        <span id="paymentTotal" class="text-green-600">฿0.00</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <button class="payment-method bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg transition-colors" data-method="cash">
+                        <i class="fas fa-money-bill-wave mb-2 block text-xl"></i>เงินสด
+                    </button>
+                    <button class="payment-method bg-purple-500 hover:bg-purple-600 text-white py-3 rounded-lg transition-colors" data-method="card">
+                        <i class="fas fa-credit-card mb-2 block text-xl"></i>บัตรเครดิต
+                    </button>
+                    <button class="payment-method bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg transition-colors" data-method="qr">
+                        <i class="fas fa-qrcode mb-2 block text-xl"></i>QR Code
+                    </button>
+                    <button class="payment-method bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-lg transition-colors" data-method="wallet">
+                        <i class="fas fa-wallet mb-2 block text-xl"></i>E-Wallet
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex space-x-3">
+                <button id="cancelPayment" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-3 rounded-lg transition-colors">
+                    ยกเลิก
+                </button>
+                <button id="confirmPayment" class="flex-1 bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg transition-colors">
+                    ยืนยันการชำระ
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Menu data
+        const menuData = {
+            drinks: [
+                { id: 1, name: 'เอสเปรสโซ', price: 45, image: '☕' },
+                { id: 2, name: 'อเมริกาโน่', price: 55, image: '☕' },
+                { id: 3, name: 'คาปูชิโน่', price: 65, image: '☕' },
+                { id: 4, name: 'ลาเต้', price: 70, image: '🥛' },
+                { id: 5, name: 'มอคค่า', price: 75, image: '☕' },
+                { id: 6, name: 'ชาเขียวลาเต้', price: 65, image: '🍵' },
+                { id: 7, name: 'ชาไทย', price: 50, image: '🧋' },
+                { id: 8, name: 'น้ำส้มคั้น', price: 40, image: '🍊' }
+            ],
+            food: [
+                { id: 9, name: 'แซนด์วิชแฮม', price: 85, image: '🥪' },
+                { id: 10, name: 'แซนด์วิชทูน่า', price: 90, image: '🥪' },
+                { id: 11, name: 'ขนมปังปิ้ง', price: 35, image: '🍞' },
+                { id: 12, name: 'สลัดผัก', price: 120, image: '🥗' },
+                { id: 13, name: 'พาสต้าคาโบนาร่า', price: 150, image: '🍝' },
+                { id: 14, name: 'ข้าวผัดกิมจิ', price: 130, image: '🍚' }
+            ],
+            dessert: [
+                { id: 15, name: 'เค้กช็อคโกแลต', price: 95, image: '🍰' },
+                { id: 16, name: 'เค้กชีส', price: 85, image: '🍰' },
+                { id: 17, name: 'คุกกี้', price: 25, image: '🍪' },
+                { id: 18, name: 'มาการอง', price: 45, image: '🧁' },
+                { id: 19, name: 'ไอศกรีม', price: 55, image: '🍦' },
+                { id: 20, name: 'บราวนี่', price: 75, image: '🍫' }
+            ]
+        };
+
+        let currentOrder = [];
+        let currentCategory = 'drinks';
+        let orderCounter = 1;
+        let selectedPaymentMethod = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateTime();
+            setInterval(updateTime, 1000);
+            renderMenu();
+            updateOrderTime();
+        });
+
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = now.toLocaleString('th-TH');
+        }
+
+        function updateOrderTime() {
+            const now = new Date();
+            document.getElementById('orderTime').textContent = now.toLocaleTimeString('th-TH');
+        }
+
+        function renderMenu() {
+            const menuGrid = document.getElementById('menuGrid');
+            const items = menuData[currentCategory];
+            
+            menuGrid.innerHTML = items.map(item => `
+                <div class="menu-card bg-white border border-gray-200 rounded-lg p-4 cursor-pointer hover:shadow-lg transition-all" onclick="addToOrder(${item.id})">
+                    <div class="text-center">
+                        <div class="text-4xl mb-2">${item.image}</div>
+                        <h3 class="font-semibold text-gray-800 mb-1">${item.name}</h3>
+                        <p class="text-amber-600 font-bold">฿${item.price}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function addToOrder(itemId) {
+            const allItems = [...menuData.drinks, ...menuData.food, ...menuData.dessert];
+            const item = allItems.find(i => i.id === itemId);
+            
+            const existingItem = currentOrder.find(orderItem => orderItem.id === itemId);
+            
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                currentOrder.push({
+                    ...item,
+                    quantity: 1
+                });
+            }
+            
+            renderOrder();
+            updateTotals();
+        }
+
+        function removeFromOrder(itemId) {
+            const itemIndex = currentOrder.findIndex(item => item.id === itemId);
+            if (itemIndex > -1) {
+                if (currentOrder[itemIndex].quantity > 1) {
+                    currentOrder[itemIndex].quantity -= 1;
+                } else {
+                    currentOrder.splice(itemIndex, 1);
+                }
+            }
+            renderOrder();
+            updateTotals();
+        }
+
+        function renderOrder() {
+            const orderItems = document.getElementById('orderItems');
+            
+            if (currentOrder.length === 0) {
+                orderItems.innerHTML = `
+                    <div class="text-center text-gray-500 py-8">
+                        <i class="fas fa-shopping-cart text-4xl mb-3"></i>
+                        <p>ยังไม่มีรายการสั่งซื้อ</p>
+                    </div>
+                `;
+                return;
+            }
+
+            orderItems.innerHTML = currentOrder.map(item => `
+                <div class="order-item flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                    <div class="flex items-center space-x-3">
+                        <span class="text-2xl">${item.image}</span>
+                        <div>
+                            <h4 class="font-medium text-gray-800">${item.name}</h4>
+                            <p class="text-sm text-gray-600">฿${item.price} x ${item.quantity}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="font-semibold text-gray-800">฿${(item.price * item.quantity).toFixed(2)}</span>
+                        <button onclick="removeFromOrder(${item.id})" class="text-red-500 hover:text-red-700 ml-2">
+                            <i class="fas fa-minus-circle"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateTotals() {
+            const subtotal = currentOrder.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const tax = subtotal * 0.07;
+            const total = subtotal + tax;
+
+            document.getElementById('subtotal').textContent = `฿${subtotal.toFixed(2)}`;
+            document.getElementById('tax').textContent = `฿${tax.toFixed(2)}`;
+            document.getElementById('total').textContent = `฿${total.toFixed(2)}`;
+        }
+
+        // Category switching
+        document.querySelectorAll('.category-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.category-btn').forEach(b => {
+                    b.classList.remove('active', 'bg-amber-500', 'text-white');
+                    b.classList.add('bg-gray-200', 'text-gray-700');
+                });
+                
+                this.classList.add('active', 'bg-amber-500', 'text-white');
+                this.classList.remove('bg-gray-200', 'text-gray-700');
+                
+                currentCategory = this.dataset.category;
+                renderMenu();
+            });
+        });
+
+        // Clear order
+        document.getElementById('clearOrder').addEventListener('click', function() {
+            if (confirm('ต้องการล้างรายการสั่งซื้อทั้งหมดหรือไม่?')) {
+                currentOrder = [];
+                renderOrder();
+                updateTotals();
+            }
+        });
+
+        // Payment process
+        document.getElementById('processPayment').addEventListener('click', function() {
+            if (currentOrder.length === 0) {
+                alert('กรุณาเลือกสินค้าก่อนชำระเงิน');
+                return;
+            }
+            
+            const total = currentOrder.reduce((sum, item) => sum + (item.price * item.quantity), 0) * 1.07;
+            document.getElementById('paymentTotal').textContent = `฿${total.toFixed(2)}`;
+            document.getElementById('paymentModal').classList.remove('hidden');
+            document.getElementById('paymentModal').classList.add('flex');
+        });
+
+        // Payment method selection
+        document.querySelectorAll('.payment-method').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.payment-method').forEach(b => {
+                    b.classList.remove('ring-4', 'ring-yellow-300');
+                });
+                this.classList.add('ring-4', 'ring-yellow-300');
+                selectedPaymentMethod = this.dataset.method;
+            });
+        });
+
+        // Cancel payment
+        document.getElementById('cancelPayment').addEventListener('click', function() {
+            document.getElementById('paymentModal').classList.add('hidden');
+            document.getElementById('paymentModal').classList.remove('flex');
+            selectedPaymentMethod = null;
+            document.querySelectorAll('.payment-method').forEach(b => {
+                b.classList.remove('ring-4', 'ring-yellow-300');
+            });
+        });
+
+        // Confirm payment
+        document.getElementById('confirmPayment').addEventListener('click', function() {
+            if (!selectedPaymentMethod) {
+                alert('กรุณาเลือกวิธีการชำระเงิน');
+                return;
+            }
+
+            // Simulate payment processing
+            const paymentMethods = {
+                cash: 'เงินสด',
+                card: 'บัตรเครดิต',
+                qr: 'QR Code',
+                wallet: 'E-Wallet'
+            };
+
+            alert(`ชำระเงินสำเร็จ!\nวิธีการชำระ: ${paymentMethods[selectedPaymentMethod]}\nขอบคุณที่ใช้บริการ`);
+            
+            // Reset order
+            currentOrder = [];
+            renderOrder();
+            updateTotals();
+            orderCounter++;
+            document.getElementById('orderNumber').textContent = String(orderCounter).padStart(3, '0');
+            updateOrderTime();
+            
+            // Close modal
+            document.getElementById('paymentModal').classList.add('hidden');
+            document.getElementById('paymentModal').classList.remove('flex');
+            selectedPaymentMethod = null;
+            document.querySelectorAll('.payment-method').forEach(b => {
+                b.classList.remove('ring-4', 'ring-yellow-300');
+            });
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'96f1952a57bc52ea',t:'MTc1NTE4NjM2Mi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
